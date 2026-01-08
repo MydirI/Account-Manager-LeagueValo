@@ -194,13 +194,11 @@ class main_window:
         if self.current_page > 0:
             self.current_page -= 1
             self.display_profiles()
-        time.sleep(0.1)
 
     def show_next_profiles(self):
         if (self.current_page + 1) * self.profiles_per_page < len(self.profiles):
             self.current_page += 1
             self.display_profiles()
-        time.sleep(0.1)
 
     def add_new_account(self):
         new_window = new_account_window(self.root, self.profile_manager)
