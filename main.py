@@ -3,7 +3,6 @@ from opgg.opgg import OPGG
 import requests
 import PIL
 from PIL import Image
-import io
 from script import script_launch
 from CTkToolTip import *
 import tkinter as ttk
@@ -15,13 +14,17 @@ from opgg.params import Region
 from utils.image_utils import download_image
 from utils.cache_manager import CacheManager
 from utils.profile_manager import ProfileManager
+from cachetools import cached, LRUCache
 import time
+from utils.data_manager import DataManager
+import os
+import threading
 
 
 class main_window:
     def __init__(self) -> None:
         self.root = tk.CTk()
-        image = PIL.Image.open("assets\\background.png")
+        image = PIL.Image.open("assets\\background.jpg")
         self.root.configure(fg_color='#010A13')
         background_image = tk.CTkImage(image, size=(800, 500))
         bg_lbl = tk.CTkLabel(self.root, text="", image=background_image)
@@ -45,6 +48,19 @@ class main_window:
         self.frame_profile.place(x=182, y=215)
         pywinstyles.set_opacity(self.frame_profile, value=0.75, color="#000001")
 
+        add_icon = PIL.Image.open("assets\\add_icon.png")
+        add_icon_tk = tk.CTkImage(dark_image=add_icon, size=(100, 100))
+        self.button_add = tk.CTkButton(self.root, 
+                                       corner_radius=5, 
+                                       text="",
+                                       image=add_icon_tk,fg_color="#000001", 
+                                       hover_color="#160936" , 
+                                       height=100, 
+                                       width=100, 
+                                       command=self.add_new_account)
+        self.button_add.place(x=347, y=350)
+        pywinstyles.set_opacity(self.button_add, value=0.5, color="#000001")
+
         self.prev_button = tk.CTkButton(self.root, text="", width=50, height=101, fg_color="#311662", command=self.show_previous_profiles, corner_radius=5)
         self.prev_button.place(x=140, y=215)
         pywinstyles.set_opacity(self.prev_button, value=0.2, color="#000001")
@@ -64,50 +80,84 @@ class main_window:
         self.cache = self.cache_manager.load_cache()
         self.profile_manager = ProfileManager()
         self.profiles = self.profile_manager.get_all()
-
+        self.data_manager = DataManager()
+        self.profile_buttons_dict = {}
         self.load_all()
 
 
     def load_all(self):
-
-        self.button_add = tk.CTkButton(self.root, font=tk.CTkFont(weight="bold", size=65), corner_radius=0, text="+", fg_color="#000001", hover_color="#091428", height=100, width=100, command=self.add_new_account)
-        self.button_add.place(x=350, y=350)
-        pywinstyles.set_opacity(self.button_add, color="#000001")
-        
         self.profiles = self.profile_manager.get_all()
         self.display_profiles()
 
     def display_profiles(self):
         for widget in self.frame_profile.winfo_children():
             widget.destroy()
-
         start_index = self.current_page * self.profiles_per_page
         end_index = start_index + self.profiles_per_page
 
         for i in range(start_index, min(end_index, len(self.profiles))):
             profile = self.profiles[i]
             riot_id = profile["Riot_id"]
-            
             if riot_id in self.cache:
                 cache_data = self.cache[riot_id]
-                
-                if cache_data["image_url"]:
-                    try:
-                        response = requests.get(cache_data["image_url"], timeout=10)
-                        response.raise_for_status()
-                        image_data = BytesIO(response.content)
-                        my_image = tk.CTkImage(dark_image=Image.open(image_data), size=(75, 75))
-                        self.update_ui(profile, my_image, cache_data["opgg_data"])
-                    except Exception as e:
-                        print(f"Cache image load error: {e}")
+                if cache_data["last_request_time"]+(3600*3) > time.time():
+                    if cache_data["image_url"] and os.path.exists(f"assets\\summoner_icon\\{os.path.basename(cache_data["image_url"])}"):
+                        try:
+                            filename = f"assets\\summoner_icon\\{os.path.basename(cache_data["image_url"])}"
+                            image_data = PIL.Image.open(filename)
+                            
+                            my_image = tk.CTkImage(dark_image=image_data, size=(75, 75))
+                            self.update_ui(profile, my_image, cache_data["opgg_data"])
+                        except Exception as e:
+                            print(f"Cache image load error: {e}")
+                            self.load_default_image(profile)
+                    else:
                         self.load_default_image(profile)
-                else:
+                        thread = threading.Thread(
+                        target=self.fetch_and_cache,
+                        args=(profile, riot_id)
+                        )
+                        thread.start()
+                else :
                     self.load_default_image(profile)
+                    thread = threading.Thread(
+                    target=self.fetch_and_cache,
+                    args=(profile, riot_id)
+                    )
+                    thread.start() 
             else:
                 self.load_default_image(profile)
+                thread = threading.Thread(
+                target=self.fetch_and_cache,
+                args=(profile, riot_id)
+                )
+                thread.start()
             
-            threading.Thread(target=self.update_profile_image, args=(profile,)).start()
-            
+    def fetch_and_cache(self, profile, riot_id):
+        cache_data = self.data_manager.fetch_data(riot_id)
+        if not os.path.exists(f"assets\\summoner_icon\\{os.path.basename(cache_data["image_url"])}"):
+            download_image(cache_data["image_url"])
+        self.cache_manager.set(riot_id, cache_data)
+
+        filename = f"assets\\summoner_icon\\{os.path.basename(cache_data['image_url'])}"
+        pil_image = PIL.Image.open(filename)
+
+        self.root.after(
+            0,
+            self.update_button_image,
+            riot_id,
+            pil_image
+        ) 
+
+    def update_button_image(self, riot_id, pil_image):
+        if riot_id not in self.profile_buttons_dict:
+            return
+
+        ctk_image = tk.CTkImage(pil_image, size=(75, 75))
+
+        btn = self.profile_buttons_dict[riot_id]
+        btn.configure(image=ctk_image)
+        btn.image = ctk_image
 
     def load_default_image(self, profile):
         try:
@@ -116,53 +166,6 @@ class main_window:
             self.update_ui(profile, summoner_image)
         except Exception as e:
             print(f"Default image error: {e}")
-       
-
-    def update_profile_image(self, profile):
-        try:
-            riot_id = profile["Riot_id"]
-            
-            opgg = OPGG()
-            opgg_data = opgg.search(riot_id, region = Region.EUW)
-            summoner_data = opgg_data[0].summoner
-                
-            image_url = summoner_data.profile_image_url
-            summoner_image = None
-
-            solo_rank = next((league for league in summoner_data.league_stats if league.game_type == "SOLORANKED"), None)
-
-            if image_url:
-                summoner_image = download_image(image_url)
-
-            if summoner_image:
-                if solo_rank and solo_rank.tier_info.tier:
-                    cache_data = {
-                        "image_url": str(image_url),
-                        "opgg_data": {
-                            "tier": solo_rank.tier_info.tier,
-                            "division": solo_rank.tier_info.division,
-                            "lp": solo_rank.tier_info.lp
-                        }
-                    }
-                else:
-                    cache_data = {
-                        "image_url": str(image_url),
-                        "opgg_data": {
-                            "tier": "unranked",
-                            "division": "",
-                            "lp": "0"
-                        }
-                    }
-                
-                self.cache_manager.set(riot_id, cache_data)
-
-            else:
-                self.cache_manager.set_default_cache(profile= profile)
-                
-        except Exception as e:
-            print(f"Profile update error {profile['Riot_id']}: {e}")
-            self.cache_manager.set_default_cache(profile= profile)
-        
 
     def update_ui(self, profile, summoner_image, opgg_data=None):
         self.profile_button = tk.CTkButton(
@@ -175,10 +178,10 @@ class main_window:
             width=100,
             command=lambda: script_launch(profile["Username"], profile["Password"], self.choose_game_button.get())
         )
-
         self.profile_button.image = summoner_image
         self.profile_button.bind("<Button-3>", lambda event: self.right_click(profile, event))
         self.profile_button.pack(side=tk.LEFT, padx=5)
+        self.profile_buttons_dict[profile["Riot_id"]] = self.profile_button
 
         if opgg_data is not None:
             tooltip_message = (
@@ -190,6 +193,7 @@ class main_window:
             tooltip_message = f"{profile['Riot_id']}"
 
         CTkToolTip(self.profile_button, message=tooltip_message)
+
     def show_previous_profiles(self):
         if self.current_page > 0:
             self.current_page -= 1

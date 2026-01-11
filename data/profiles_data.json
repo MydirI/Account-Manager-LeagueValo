@@ -74,6 +74,11 @@
             "Riot_id": "test",
             "Username": "test2",
             "Password": "test"
+        },
+        {
+            "Riot_id": "IvanDragovic\n#2002",
+            "Username": "balek",
+            "Password": "balek"
         }
     ]
 }
