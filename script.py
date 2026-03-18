@@ -33,7 +33,7 @@ def script_launch(username,password,game):
                 "--launch-product=league_of_legends",
                 "--launch-patchline=live"]# a modifier pour pouvoir le changer 
                 subprocess.Popen(app)
-                time.sleep(5)
+                time.sleep(10)
                 copy_and_paste(username,password)
         else:
             print("league running")# to modify as popup
@@ -46,7 +46,7 @@ def script_launch(username,password,game):
                 "--launch-product=valorant",
                 "--launch-patchline=live"]# a modifier pour pouvoir le changer 
                 subprocess.Popen(app)
-                time.sleep(5)
+                time.sleep(10)
                 copy_and_paste(username,password)
     else:
         print("valorant is running")# to modify as popup
