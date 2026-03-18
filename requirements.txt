@@ -1,0 +1,11 @@
+requests
+pillow
+customtkinter
+CTkToolTip
+pywinstyles
+pyperclip
+pygetwindow
+pyautogui
+psutil
+cachetools
+opgg
