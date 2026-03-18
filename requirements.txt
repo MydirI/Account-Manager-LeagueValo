@@ -8,4 +8,4 @@ pygetwindow
 pyautogui
 psutil
 cachetools
-opgg
+opgg.py
