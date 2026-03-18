@@ -134,20 +134,23 @@ class main_window:
                 thread.start()
             
     def fetch_and_cache(self, profile, riot_id):
-        cache_data = self.data_manager.fetch_data(riot_id)
-        if not os.path.exists(f"assets\\summoner_icon\\{os.path.basename(cache_data["image_url"])}"):
-            download_image(cache_data["image_url"])
-        self.cache_manager.set(riot_id, cache_data)
+        try:
+            cache_data = self.data_manager.fetch_data(riot_id)
+            if not os.path.exists(f"assets\\summoner_icon\\{os.path.basename(cache_data["image_url"])}"):
+                download_image(cache_data["image_url"])
+            self.cache_manager.set(riot_id, cache_data)
 
-        filename = f"assets\\summoner_icon\\{os.path.basename(cache_data['image_url'])}"
-        pil_image = PIL.Image.open(filename)
+            filename = f"assets\\summoner_icon\\{os.path.basename(cache_data['image_url'])}"
+            pil_image = PIL.Image.open(filename)
 
-        self.root.after(
-            0,
-            self.update_button_image,
-            riot_id,
-            pil_image
-        ) 
+            self.root.after(
+                0,
+                self.update_button_image,
+                riot_id,
+                pil_image
+            ) 
+        except:
+            print(f"Data not found on OPGG for account : {riot_id}")
 
     def update_button_image(self, riot_id, pil_image):
         if riot_id not in self.profile_buttons_dict:
