@@ -82,6 +82,7 @@ class main_window:
         self.profiles = self.profile_manager.get_all()
         self.data_manager = DataManager()
         self.profile_buttons_dict = {}
+        self.profile_tooltips_dict = {}
         self.load_all()
 
 
@@ -92,6 +93,9 @@ class main_window:
     def display_profiles(self):
         for widget in self.frame_profile.winfo_children():
             widget.destroy()
+        self.profile_buttons_dict.clear()
+        self.profile_tooltips_dict.clear()
+
         start_index = self.current_page * self.profiles_per_page
         end_index = start_index + self.profiles_per_page
 
@@ -134,22 +138,27 @@ class main_window:
                 thread.start()
             
     def fetch_and_cache(self, profile, riot_id):
-        cache_data = self.data_manager.fetch_data(riot_id)
-        if not os.path.exists(f"assets\\summoner_icon\\{os.path.basename(cache_data["image_url"])}"):
-            download_image(cache_data["image_url"])
-        self.cache_manager.set(riot_id, cache_data)
+        try:
+            cache_data = self.data_manager.fetch_data(riot_id)
+            if not os.path.exists(f"assets\\summoner_icon\\{os.path.basename(cache_data["image_url"])}"):
+                download_image(cache_data["image_url"])
+            self.cache_manager.set(riot_id, cache_data)
 
-        filename = f"assets\\summoner_icon\\{os.path.basename(cache_data['image_url'])}"
-        pil_image = PIL.Image.open(filename)
+            filename = f"assets\\summoner_icon\\{os.path.basename(cache_data['image_url'])}"
+            pil_image = PIL.Image.open(filename)
 
-        self.root.after(
-            0,
-            self.update_button_image,
-            riot_id,
-            pil_image
-        ) 
+            self.root.after(
+                0,
+                self.update_button_image,
+                profile,
+                riot_id,
+                pil_image,
+                cache_data["opgg_data"]
+            ) 
+        except:
+            print(f"Data not found on OPGG for account : {riot_id}")
 
-    def update_button_image(self, riot_id, pil_image):
+    def update_button_image(self, profile, riot_id, pil_image, opgg_data=None):
         if riot_id not in self.profile_buttons_dict:
             return
 
@@ -158,6 +167,14 @@ class main_window:
         btn = self.profile_buttons_dict[riot_id]
         btn.configure(image=ctk_image)
         btn.image = ctk_image
+
+        if opgg_data is not None and riot_id in self.profile_tooltips_dict:
+            tooltip_message = (
+                f"{profile['Riot_id']}\n"
+                f"{opgg_data['tier']} {opgg_data['division']}\n"
+                f"{opgg_data['lp']} LP"
+            )
+            self.profile_tooltips_dict[riot_id].configure(message=tooltip_message)
 
     def load_default_image(self, profile):
         try:
@@ -192,7 +209,8 @@ class main_window:
         else:
             tooltip_message = f"{profile['Riot_id']}"
 
-        CTkToolTip(self.profile_button, message=tooltip_message)
+        tooltip = CTkToolTip(self.profile_button, message=tooltip_message)
+        self.profile_tooltips_dict[profile["Riot_id"]] = tooltip
 
     def show_previous_profiles(self):
         if self.current_page > 0:

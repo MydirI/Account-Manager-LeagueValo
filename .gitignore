@@ -2,3 +2,5 @@ data/
 assets/summoner_icon
 logs/
 cache/
+__pycache__/
+*.pyc
