@@ -279,14 +279,19 @@ class new_account_window:
         self.frame_entry.pack(anchor=tk.CENTER, expand=True)
 
         
+        label_font = tk.CTkFont(size=14, weight="bold")
+
+        tk.CTkLabel(self.frame_entry, text="pseudo#id", font=label_font, anchor="w", width=300).pack(pady=(10, 0))
         self.entry_riotID = tk.CTkEntry(self.frame_entry, width=300, height=50)
-        self.entry_riotID.pack(pady=20)
+        self.entry_riotID.pack(pady=(2, 10))
 
+        tk.CTkLabel(self.frame_entry, text="username", font=label_font, anchor="w", width=300).pack(pady=(10, 0))
         self.entry_username = tk.CTkEntry(self.frame_entry, width=300, height=50)
-        self.entry_username.pack(pady=20)
+        self.entry_username.pack(pady=(2, 10))
 
-        self.entry_password = tk.CTkEntry(self.frame_entry, width=300, height=50)
-        self.entry_password.pack(pady=20)
+        tk.CTkLabel(self.frame_entry, text="password", font=label_font, anchor="w", width=300).pack(pady=(10, 0))
+        self.entry_password = tk.CTkEntry(self.frame_entry, width=300, height=50, show="•")
+        self.entry_password.pack(pady=(2, 10))
 
         if data is not None:
             self.entry_riotID.insert(0, data["Riot_id"])
