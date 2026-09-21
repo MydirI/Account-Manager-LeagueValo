@@ -16,16 +16,16 @@ This application allows you to manage your Riot Games accounts and quickly launc
 
 ## Installation
 
-1. Make sure you have Python installed (version 3.7 or higher)
+1. Make sure you have Python installed (version 3.8 or higher) on Windows
 2. Install the required packages using pip:
 
    ```bash
-   pip install customtkinter opgg requests pillow pywinstools
+   pip install customtkinter CTkToolTip opgg requests pillow cachetools psutil pyautogui pygetwindow pyperclip pywinstyles pywin32 opencv-python
    ```
 
 3. Clone or download this project to your computer.
 
-4. To change background, change background.png
+4. To change background, replace `assets/background.jpg` (800x500)
 
 5. Run the application:
 
@@ -38,7 +38,10 @@ This application allows you to manage your Riot Games accounts and quickly launc
 ### Adding an account
 
 1. Click the "+" button to add a new account.
-2. Enter your Riot ID (e.g., "YourName#Tagline"), username, and password.
+2. Fill in the fields in this order:
+   1. **pseudo#id**: your Riot ID (e.g., "YourName#Tagline")
+   2. **username**: your Riot login username
+   3. **password**: your Riot login password
 3. Click the arrow button to save.
 
 ### Launching a game
